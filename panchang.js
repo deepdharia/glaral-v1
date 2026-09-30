@@ -404,6 +404,12 @@ function panchangForDate(date, loc) {
     const [a, b] = segs[idx];
     return fmtTime(a, jd0ut, loc.tz) + ' – ' + fmtTime(b, jd0ut, loc.tz);
   }
+  // raw segment boundaries as ms timestamps (for live countdowns)
+  function segMs(idx) {
+    if (!segs) return null;
+    const [a, b] = segs[idx];
+    return [ (jd0ut + a/24 - 2440587.5)*86400000, (jd0ut + b/24 - 2440587.5)*86400000 ];
+  }
   const noonUT = solarNoonUT(jd0ut, loc.lat, loc.lng);
   const jdNoon = jd0ut + noonUT / 24;
 
@@ -431,6 +437,11 @@ function panchangForDate(date, loc) {
     yamaganda: segRange(YAMA_SEG[wd]),
     gulika: segRange(GULIKA_SEG[wd]),
     abhijit: fmtTime(noonUT - 0.4, jd0ut, loc.tz) + ' – ' + fmtTime(noonUT + 0.4, jd0ut, loc.tz),
+    // raw ms timestamps for live countdowns
+    _rahuMs: segMs(RAHU_SEG[wd]),
+    _yamaMs: segMs(YAMA_SEG[wd]),
+    _gulikaMs: segMs(GULIKA_SEG[wd]),
+    _abhijitMs: [ (jd0ut + (noonUT-0.4)/24 - 2440587.5)*86400000, (jd0ut + (noonUT+0.4)/24 - 2440587.5)*86400000 ],
     // raw JDs for festival trigger checks
     _jdRise: jdRise, _jdSet: jdSet, _jdMidnight: jdMidnight, _jdNoon: jdNoon, _jd0ut: jd0ut
   };
