@@ -62,27 +62,70 @@ document.querySelectorAll('.tab').forEach(t=>{
 });
 
 /* ---------- TODAY ---------- */
+function nextFestivals(fromDate, n){
+  const out = [];
+  for(let y=fromDate.y; y<=fromDate.y+1 && out.length<n+10; y++){
+    const list = festivals(y).major.slice().sort((a,b)=>(a.m-b.m)||(a.d-b.d));
+    for(const f of list){
+      const n1 = f.y*10000+f.m*100+f.d, n0 = fromDate.y*10000+fromDate.m*100+fromDate.d;
+      if(n1 >= n0) out.push(f);
+      if(out.length >= n+10) break;
+    }
+  }
+  // dedupe by id+date, keep order
+  const seen = new Set(), res = [];
+  for(const f of out){ const k = f.id+f.y+f.m+f.d; if(!seen.has(k)){ seen.add(k); res.push(f); } }
+  return res.slice(0, n);
+}
 function renderToday(){
   const el = document.getElementById('view-today');
   const p = P.panchangForDate(selDate, {lat:city.lat,lng:city.lng,tz:city.tz});
   const monthStr = amanta ? p.monthAmanta : p.monthPurnimanta;
   const isToday = sameDay(selDate, todayInTz(city.tz));
   const fests = festivals(selDate.y).major.filter(f=>f.y===selDate.y&&f.m===selDate.m&&f.d===selDate.d);
+  const now = todayInTz(city.tz);
+  const upcoming = isToday ? nextFestivals(now, 7) : [];
+  const nextF = upcoming.find(f=>!(f.y===now.y&&f.m===now.m&&f.d===now.d));
+
+  let heroFest = '';
+  if(fests.length){
+    heroFest = '<div class="hero-fest">'+fests.map(f=>'🪔 '+esc(f.name)).join(' · ')+'</div>';
+  }
+  let countdown = '';
+  if(nextF){
+    const inDays = Math.round((new Date(nextF.y,nextF.m-1,nextF.d)-new Date(now.y,now.m-1,now.d))/864e5);
+    countdown =
+    '<div class="card countdown"><div class="cd-label">Next festival</div>'+
+    '<div class="cd-name">🪔 '+esc(nextF.name)+'</div>'+
+    '<div class="cd-when">'+esc(weekdayName(nextF.y,nextF.m,nextF.d))+', '+monthName(nextF.m)+' '+nextF.d+
+    ' · <b>'+(inDays===0?'today!':inDays===1?'tomorrow':'in '+inDays+' days')+'</b></div>'+
+    (nextF.blurb?'<div class="cd-blurb">'+esc(nextF.blurb)+'</div>':'')+'</div>';
+  }
+  let strip = '';
+  if(upcoming.length){
+    strip = '<div class="card"><h3 style="margin:0 0 10px;font-size:15px">Upcoming festivals</h3><div class="strip">'+
+      upcoming.map(f=>{
+        const inDays = Math.round((new Date(f.y,f.m-1,f.d)-new Date(now.y,now.m-1,now.d))/864e5);
+        return '<div class="chip"><div class="chip-d">'+f.d+'</div><div class="chip-m">'+monthName(f.m).slice(0,3)+'</div>'+
+          '<div class="chip-n">'+esc(f.name)+'</div><div class="chip-w">'+(inDays===0?'today':inDays+'d')+'</div></div>';
+      }).join('')+'</div></div>';
+  }
 
   el.innerHTML =
-  '<div class="card"><div class="today-head">'+
+  '<div class="hero"><div class="today-head">'+
     '<div class="eng">'+esc(weekdayName(selDate.y,selDate.m,selDate.d))+', '+monthName(selDate.m)+' '+selDate.d+', '+selDate.y+'</div>'+
     '<div class="tithi">'+esc(p.tithiName)+'</div>'+
     '<div class="sub">'+esc(p.paksha)+' Paksha · '+esc(p.nakshatra)+' Nakshatra</div>'+
-    '<div class="sub" style="margin-top:4px">📍 '+esc(city.name)+'</div>'+
-    (fests.length? '<div style="margin-top:8px">'+fests.map(f=>'<div style="font-weight:700;color:var(--fest)">🪔 '+esc(f.name)+'</div>').join('')+'</div>':'')+
+    '<div class="sub" style="margin-top:4px;opacity:.85">📍 '+esc(city.name)+' · '+esc(monthStr)+' ('+(amanta?'Amanta':'Purnimanta')+')</div>'+
+    heroFest+
     '<div style="margin-top:10px;display:flex;gap:8px;justify-content:center">'+
-      '<button class="ghostbtn" style="width:auto;margin:0;padding:8px 16px" id="prevDay">‹ Prev</button>'+
-      (isToday?'':'<button class="ghostbtn" style="width:auto;margin:0;padding:8px 16px" id="goToday">Today</button>')+
-      '<button class="ghostbtn" style="width:auto;margin:0;padding:8px 16px" id="nextDay">Next ›</button>'+
+      '<button class="hbtn" id="prevDay">‹ Prev</button>'+
+      (isToday?'':'<button class="hbtn" id="goToday">Today</button>')+
+      '<button class="hbtn" id="nextDay">Next ›</button>'+
     '</div>'+
     '<div class="toggle"><button class="'+(amanta?'on':'')+'" id="tAm">Amanta</button><button class="'+(!amanta?'on':'')+'" id="tPu">Purnimanta</button></div>'+
   '</div></div>'+
+  countdown + strip +
 
   '<div class="card"><div class="grid2">'+
     kv('Tithi', p.tithiName)+
@@ -100,11 +143,40 @@ function renderToday(){
   '</div></div>'+
 
   '<div class="card"><h3 style="margin:0 0 6px;font-size:15px">Muhurta</h3>'+
+    '<div id="liveNow" style="margin-bottom:6px"></div>'+
     seg('Rahu Kaal', p.rahuKaal)+
     seg('Yamaganda', p.yamaganda)+
     seg('Gulika', p.gulika)+
     seg('Abhijit', p.abhijit)+
   '</div>';
+
+  // live countdown: which muhurta is running now?
+  if(isToday){
+    const liveEl = document.getElementById('liveNow');
+    const periods = [
+      ['Rahu Kaal ⛔', p._rahuMs], ['Yamaganda ⛔', p._yamaMs],
+      ['Gulika ⛔', p._gulikaMs], ['Abhijit ✅', p._abhijitMs]
+    ];
+    const tick = ()=>{
+      const nowMs = Date.now();
+      let html = '';
+      for(const [name, ms] of periods){
+        if(!ms) continue;
+        const [a,b] = ms;
+        if(nowMs >= a && nowMs <= b){
+          const mins = Math.round((b-nowMs)/60000);
+          html = '<div style="background:#fef3c7;border:1px solid #f3d9a8;border-radius:10px;padding:8px 12px;font-size:14px">⏱️ <b>'+name+'</b> running now · ends in '+mins+' min</div>';
+          break;
+        } else if(nowMs < a){
+          const mins = Math.round((a-nowMs)/60000);
+          if(mins < 180) html = '<div style="font-size:13px;color:var(--muted);padding:4px 0">⏳ '+name+' starts in '+mins+' min</div>';
+        }
+      }
+      liveEl.innerHTML = html;
+    };
+    tick();
+    setInterval(tick, 60000);
+  }
 
   document.getElementById('prevDay').onclick = ()=>{ selDate = addDays(selDate,-1); renderToday(); };
   document.getElementById('nextDay').onclick = ()=>{ selDate = addDays(selDate,1); renderToday(); };
@@ -180,20 +252,52 @@ function renderFestivals(){
   const list = festivals(y).major.slice().sort((a,b)=>(a.m-b.m)||(a.d-b.d));
   const now = todayInTz(city.tz);
   const nowN = now.y*10000+now.m*100+now.d;
+  // group by month
+  const byMonth = {};
+  list.forEach(f=>{ (byMonth[f.m]=byMonth[f.m]||[]).push(f); });
+  const months = Object.keys(byMonth).map(Number).sort((a,b)=>a-b);
   el.innerHTML = '<div class="card"><h3 style="margin:0 0 4px">Festivals '+y+' <small style="color:var(--muted);font-weight:500">· '+esc(city.name)+'</small></h3>'+
-    list.map(f=>{
-      const n = f.y*10000+f.m*100+f.d;
-      const inDays = Math.round((new Date(f.y,f.m-1,f.d)-new Date(now.y,now.m-1,now.d))/864e5);
-      const when = inDays<0?'':(inDays===0?' · <b>today</b>':' · in '+inDays+'d');
-      return '<div class="fest-item"><div class="fdate"><div class="fd">'+f.d+'</div><div class="fm">'+monthName(f.m).slice(0,3)+'</div></div>'+
-        '<div class="fname">'+esc(f.name)+(f.blurb?'<small>'+esc(f.blurb)+'</small>':'')+'</div>'+
-        '<div class="in">'+esc(weekdayName(f.y,f.m,f.d).slice(0,3))+when+'</div></div>';
+    '<div class="note" style="text-align:left;margin:0 0 6px">'+list.length+' festivals · computed for your city</div>'+
+    '<button class="ghostbtn" id="icsBtn" style="margin-bottom:8px">📅 Add all to my calendar (.ics)</button>'+
+    months.map(m=>{
+      return '<div class="fmonth">'+monthName(m)+'</div>'+
+        byMonth[m].map(f=>{
+          const n = f.y*10000+f.m*100+f.d;
+          const inDays = Math.round((new Date(f.y,f.m-1,f.d)-new Date(now.y,now.m-1,now.d))/864e5);
+          const when = inDays<0?'':(inDays===0?' · <b>today</b>':' · in '+inDays+'d');
+          return '<div class="fest-item"><div class="fdate"><div class="fd">'+f.d+'</div><div class="fm">'+monthName(f.m).slice(0,3)+'</div></div>'+
+            '<div class="fname">'+esc(f.name)+(f.blurb?'<small>'+esc(f.blurb)+'</small>':'')+'</div>'+
+            '<div class="in">'+esc(weekdayName(f.y,f.m,f.d).slice(0,3))+when+'</div></div>';
+        }).join('');
     }).join('')+'</div>';
+  document.getElementById('icsBtn').onclick = downloadICS;
 }
 function proLock(title, desc){
   setTimeout(()=>{ const b=document.getElementById('lockPro'); if(b) b.onclick=openPro; },0);
   return '<div class="probanner">🔒 <b>Glaral Pro</b> — '+esc(desc)+
     '<br><button class="probtn" id="lockPro" style="margin-top:10px">Unlock Pro · '+(CFG.PRO_PRICE_LABEL||'$6.99')+'</button></div>';
+}
+
+/* ---------- ICS export: add festivals to Google/Apple calendar ---------- */
+function downloadICS(){
+  const y = selDate.y;
+  const list = festivals(y).major.slice().sort((a,b)=>(a.m-b.m)||(a.d-b.d));
+  const stamp = new Date().toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+  let ics = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Glaral//Hindu Calendar//EN\r\nCALSCALE:GREGORIAN\r\nX-WR-CALNAME:Glaral Festivals '+y+'\r\n';
+  for(const f of list){
+    const dt = f.y+String(f.m).padStart(2,'0')+String(f.d).padStart(2,'0');
+    const summary = f.name.replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,');
+    const desc = (f.blurb||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,');
+    ics += 'BEGIN:VEVENT\r\nUID:'+f.id+'-'+dt+'@glaral\r\nDTSTAMP:'+stamp+'\r\nDTSTART;VALUE=DATE:'+dt+'\r\nSUMMARY:🪔 '+summary+'\r\n'+
+      (desc?'DESCRIPTION:'+desc+'\r\n':'')+'END:VEVENT\r\n';
+  }
+  ics += 'END:VCALENDAR\r\n';
+  const blob = new Blob([ics], {type:'text/calendar'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'glaral-festivals-'+y+'.ics';
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
 
 /* ---------- city picker ---------- */
