@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Glaral — Hindu Calendar</title>
+<meta name="description" content="Glaral is a precise Hindu panchang calendar for anywhere on Earth. Tithi, nakshatra, festivals, muhurta — computed live for your city.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7c2d12">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+:root{
+  --bg:#faf6ef; --card:#ffffff; --ink:#2b2118; --muted:#8a7a66;
+  --accent:#c2410c; --accent2:#7c2d12; --gold:#b45309; --line:#e8ddcb;
+  --fest:#9a3412; --shadow:0 2px 12px rgba(124,45,18,.08);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+body{margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;
+  background:var(--bg); color:var(--ink); line-height:1.45;}
+header{position:sticky; top:0; z-index:20; background:linear-gradient(135deg,#7c2d12,#9a3412);
+  color:#fff; padding:12px 16px calc(10px + env(safe-area-inset-top)); padding-top:calc(12px + env(safe-area-inset-top));}
+.hrow{display:flex; align-items:center; gap:10px; max-width:720px; margin:0 auto;}
+.logo{font-size:22px; font-weight:800; letter-spacing:.5px;}
+.logo small{display:block; font-size:10px; font-weight:500; opacity:.85; letter-spacing:2px;}
+.spacer{flex:1;}
+.citybtn{background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.35); color:#fff;
+  border-radius:999px; padding:7px 12px; font-size:13px; max-width:46vw; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; cursor:pointer;}
+.probtn{background:#fbbf24; color:#451a03; border:none; border-radius:999px; padding:7px 14px;
+  font-size:13px; font-weight:700; cursor:pointer;}
+.probtn.unlocked{background:#22c55e; color:#fff;}
+nav.tabs{position:sticky; top:57px; z-index:15; background:var(--bg); border-bottom:1px solid var(--line);}
+.tabs .trow{display:flex; max-width:720px; margin:0 auto;}
+.tab{flex:1; text-align:center; padding:12px 0; font-size:14px; font-weight:600; color:var(--muted);
+  cursor:pointer; border-bottom:3px solid transparent;}
+.tab.active{color:var(--accent2); border-bottom-color:var(--accent);}
+main{max-width:720px; margin:0 auto; padding:16px 14px 90px;}
+.card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px;
+  margin-bottom:14px; box-shadow:var(--shadow);}
+.today-head{text-align:center; padding:6px 0 2px;}
+.today-head .eng{font-size:13px; color:var(--muted);}
+.today-head .tithi{font-size:26px; font-weight:800; color:var(--accent2); margin:4px 0;}
+.today-head .sub{font-size:14px; color:var(--ink);}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;}
+.kv{background:#fff7ed; border:1px solid #f3e3c8; border-radius:12px; padding:10px 12px;}
+.kv .k{font-size:11px; text-transform:uppercase; letter-spacing:.8px; color:var(--muted);}
+.kv .v{font-size:15px; font-weight:700; margin-top:2px;}
+.kv .v small{font-weight:500; color:var(--muted); font-size:12px;}
+.times{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:12px; text-align:center;}
+.times .t{background:#fff7ed; border-radius:12px; padding:10px 6px; border:1px solid #f3e3c8;}
+.times .t .k{font-size:11px; color:var(--muted);}
+.times .t .v{font-size:14px; font-weight:700; margin-top:2px;}
+.seg{font-size:13px; padding:8px 0; border-top:1px dashed var(--line); display:flex; justify-content:space-between;}
+.seg:first-child{border-top:none;}
+.toggle{display:flex; background:#f1e8d8; border-radius:999px; padding:3px; margin:10px auto 0; width:max-content;}
+.toggle button{border:none; background:transparent; padding:6px 16px; border-radius:999px; font-size:13px; font-weight:600; color:var(--muted); cursor:pointer;}
+.toggle button.on{background:#fff; color:var(--accent2); box-shadow:0 1px 4px rgba(0,0,0,.12);}
+.cal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+.cal-head button{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:6px 12px; font-size:14px; cursor:pointer;}
+.cal-head .mtitle{font-size:17px; font-weight:800;}
+.cal{display:grid; grid-template-columns:repeat(7,1fr); gap:4px;}
+.dow{font-size:11px; color:var(--muted); text-align:center; padding:4px 0; font-weight:700;}
+.day{background:var(--card); border:1px solid var(--line); border-radius:10px; min-height:56px; padding:4px 6px;
+  font-size:13px; cursor:pointer; position:relative;}
+.day .d{font-weight:700;}
+.day .ti{font-size:10px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.day .dot{position:absolute; bottom:4px; left:6px; right:6px; height:4px; border-radius:2px; background:var(--fest);}
+.day.today{border:2px solid var(--accent);}
+.day.sel{background:#fef3c7; border-color:var(--gold);}
+.day.dim{opacity:.35;}
+.fest-item{display:flex; gap:12px; padding:12px 4px; border-bottom:1px solid var(--line); align-items:center;}
+.fest-item:last-child{border-bottom:none;}
+.fdate{background:#7c2d12; color:#fff; border-radius:12px; min-width:52px; text-align:center; padding:6px 4px;}
+.fdate .fd{font-size:18px; font-weight:800; line-height:1;}
+.fdate .fm{font-size:10px; text-transform:uppercase; letter-spacing:1px;}
+.fname{font-size:15px; font-weight:700;}
+.fname small{display:block; font-weight:500; color:var(--muted); font-size:12px;}
+.fest-item .in{margin-left:auto; font-size:12px; color:var(--muted); white-space:nowrap;}
+.searchwrap{padding:10px 0;}
+.searchwrap input{width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--line); font-size:15px;}
+.citylist{max-height:50vh; overflow:auto;}
+.cityrow{padding:12px 6px; border-bottom:1px solid var(--line); font-size:15px; cursor:pointer; display:flex; justify-content:space-between;}
+.cityrow small{color:var(--muted);}
+.modal{position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:50; display:none; align-items:flex-end; justify-content:center;}
+.modal.open{display:flex;}
+.sheet{background:#fff; border-radius:20px 20px 0 0; width:100%; max-width:720px; max-height:82vh; overflow:auto; padding:18px 16px calc(20px + env(safe-area-inset-bottom));}
+.sheet h3{margin:4px 0 10px; font-size:18px;}
+.probox{text-align:center; padding:10px 0;}
+.probox .price{font-size:34px; font-weight:800; color:var(--accent2);}
+.buybtn{display:block; width:100%; background:linear-gradient(135deg,#c2410c,#7c2d12); color:#fff; border:none;
+  border-radius:14px; padding:15px; font-size:17px; font-weight:800; margin-top:14px; cursor:pointer;}
+.ghostbtn{display:block; width:100%; background:#f1e8d8; color:var(--ink); border:none; border-radius:14px;
+  padding:13px; font-size:15px; font-weight:600; margin-top:10px; cursor:pointer;}
+.keyinput{width:100%; padding:12px; border-radius:12px; border:1px solid var(--line); font-size:15px; margin-top:10px; font-family:monospace;}
+.note{font-size:12px; color:var(--muted); margin-top:10px; text-align:center;}
+.lock{filter:blur(2px); pointer-events:none; user-select:none;}
+.probanner{background:linear-gradient(135deg,#451a03,#7c2d12); color:#ffe9c9; border-radius:14px; padding:14px 16px; margin-bottom:14px; font-size:14px;}
+.probanner b{color:#fbbf24;}
+.probanner button{margin-top:8px;}
+footer{text-align:center; font-size:11px; color:var(--muted); padding:20px 0 40px;}
+@media(min-width:600px){ .modal{align-items:center;} .sheet{border-radius:20px; margin:20px;} }
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <div class="logo">Glaral<small>HINDU CALENDAR</small></div>
+    <div class="spacer"></div>
+    <button class="citybtn" id="cityBtn">📍 New Delhi</button>
+    <button class="probtn" id="proBtn">Pro</button>
+  </div>
+</header>
+<nav class="tabs"><div class="trow">
+  <div class="tab active" data-tab="today">Today</div>
+  <div class="tab" data-tab="calendar">Calendar</div>
+  <div class="tab" data-tab="festivals">Festivals</div>
+</div></nav>
+<main>
+  <div id="view-today"></div>
+  <div id="view-calendar" style="display:none"></div>
+  <div id="view-festivals" style="display:none"></div>
+  <footer>Glaral · precise panchang computed on-device for your city<br>Times are local to the selected city.</footer>
+</main>
+
+<div class="modal" id="cityModal"><div class="sheet">
+  <h3>Choose your city</h3>
+  <div class="searchwrap"><input id="citySearch" placeholder="Search city…"></div>
+  <div class="citylist" id="cityList"></div>
+  <button class="ghostbtn" id="gpsBtn">📍 Use my current location</button>
+  <button class="ghostbtn" id="cityClose">Close</button>
+</div></div>
+
+<div class="modal" id="proModal"><div class="sheet">
+  <div class="probox">
+    <h3 style="font-size:22px">Glaral Pro</h3>
+    <p style="color:var(--muted)">Unlock the full calendar, year festival list,<br>and unlimited cities — forever.</p>
+    <div class="price" id="proPrice">$6.99 <span style="font-size:14px; font-weight:500; color:var(--muted)">one-time</span></div>
+    <button class="buybtn" id="buyBtn">Unlock Pro</button>
+    <input class="keyinput" id="keyInput" placeholder="Have a license key? Paste it here">
+    <button class="ghostbtn" id="keyBtn">Activate key</button>
+    <div class="note">Secure checkout via Dodo Payments. Your key works on all your devices.</div>
+    <button class="ghostbtn" id="proClose">Not now</button>
+  </div>
+</div></div>
+
+<script src="panchang.js"></script>
+<script src="festivals.js"></script>
+<script src="cities.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+</script>
+</body>
+</html>
