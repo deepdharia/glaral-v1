@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<base href="/udhar/">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070b16">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Udhar — Lend &amp; Borrow Tracker</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+:root{
+  --bg:#070b16; --text:#f2f5fb; --muted:#8b93a7; --faint:#5b6376;
+  --glass:rgba(255,255,255,.055); --glass2:rgba(255,255,255,.09);
+  --stroke:rgba(255,255,255,.13); --stroke2:rgba(255,255,255,.22);
+  --green:#22e584; --green-d:#0d9b5c; --red:#ff6b6b; --red-d:#d63a3a;
+  --amber:#ffb020; --blue:#4da3ff;
+  --r:20px;
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Inter,sans-serif;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{height:100%}
+body{
+  font-family:var(--font); color:var(--text); background:var(--bg);
+  min-height:100%; overflow-x:hidden;
+}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(90px);z-index:0;pointer-events:none}
+body::before{width:340px;height:340px;left:-120px;top:-80px;background:radial-gradient(circle,rgba(34,229,132,.20),transparent 70%)}
+body::after{width:380px;height:380px;right:-140px;bottom:-100px;background:radial-gradient(circle,rgba(77,163,255,.16),transparent 70%)}
+.app{position:relative;z-index:1;max-width:480px;margin:0 auto;min-height:100dvh;padding-bottom:110px}
+/* ---------- header ---------- */
+header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;
+  padding:calc(14px + env(safe-area-inset-top)) 20px 12px;
+  background:rgba(7,11,22,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  border-bottom:1px solid rgba(255,255,255,.07)}
+.brand{display:flex;align-items:center;gap:11px}
+.logo{width:42px;height:42px;border-radius:15px;display:grid;place-items:center;
+  background:linear-gradient(135deg,#101C33,#0B1020);
+  border:1px solid var(--stroke2);box-shadow:0 4px 20px rgba(34,197,94,.28)}
+.logo{overflow:hidden}.logo img{width:100%;height:100%;object-fit:cover;display:block}
+.wordmark{font-size:25px;font-weight:800;letter-spacing:-1.4px;line-height:1;
+  background:linear-gradient(115deg,#D1FAE5 0%,#4ADE80 45%,#22C55E 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+.brand small{display:block;font-size:9px;color:var(--muted);font-weight:700;letter-spacing:2.4px;margin-top:4px}
+.iconbtn{width:40px;height:40px;border-radius:14px;border:1px solid var(--stroke);background:var(--glass);
+  color:var(--text);font-size:18px;display:grid;place-items:center;cursor:pointer;backdrop-filter:blur(8px)}
+.iconbtn:active{transform:scale(.94)}
+/* ---------- views ---------- */
+.view{display:none;padding:16px 16px 0;animation:fade .25s ease}
+.view.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* ---------- hero stats ---------- */
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.stat{background:var(--glass);border:1px solid var(--stroke);border-radius:var(--r);padding:14px;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);position:relative;overflow:hidden}
+.stat::after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,rgba(255,255,255,.09),transparent 45%);pointer-events:none}
+.stat .lbl{font-size:11px;font-weight:700;letter-spacing:1.2px;color:var(--muted);margin-bottom:6px}
+.stat .val{font-family:var(--mono);font-size:23px;font-weight:800;letter-spacing:-.5px}
+.stat.recv .val{color:var(--green)} .stat.pay .val{color:var(--red)}
+.stat .sub{font-size:11px;color:var(--faint);margin-top:4px}
+/* ---------- section titles ---------- */
+.sec{display:flex;align-items:center;justify-content:space-between;margin:18px 2px 10px}
+.sec h2{font-size:13px;font-weight:800;letter-spacing:1.4px;color:var(--muted)}
+.sec .count{font-size:11px;color:var(--faint);font-weight:600}
+/* ---------- person cards ---------- */
+.person{display:flex;align-items:center;gap:13px;background:var(--glass);border:1px solid var(--stroke);
+  border-radius:var(--r);padding:14px;margin-bottom:10px;cursor:pointer;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:transform .12s}
+.person:active{transform:scale(.985)}
+.avatar{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;font-size:20px;font-weight:800;flex-shrink:0;
+  color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2)}
+.pinfo{flex:1;min-width:0}
+.pinfo .nm{font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pinfo .meta{font-size:12px;color:var(--muted);margin-top:3px}
+.pbal{text-align:right;flex-shrink:0}
+.pbal .amt{font-family:var(--mono);font-size:17px;font-weight:800}
+.pbal .tag{font-size:10px;font-weight:800;letter-spacing:1px;margin-top:3px}
+.pos{color:var(--green)} .neg{color:var(--red)} .zero{color:var(--muted)}
+.chev{color:var(--faint);font-size:18px;margin-left:2px}
+/* ---------- entries ---------- */
+.entry{display:flex;align-items:center;gap:12px;background:var(--glass);border:1px solid var(--stroke);
+  border-radius:16px;padding:12px 14px;margin-bottom:8px;cursor:pointer;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.entry:active{transform:scale(.99)}
+.etype{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;font-size:17px;font-weight:800;flex-shrink:0}
+.etype.gave{background:linear-gradient(135deg,rgba(255,107,107,.28),rgba(255,107,107,.10));border:1px solid rgba(255,107,107,.35)}
+.etype.got{background:linear-gradient(135deg,rgba(34,229,132,.28),rgba(34,229,132,.10));border:1px solid rgba(34,229,132,.35)}
+.einfo{flex:1;min-width:0}
+.einfo .rsn{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.einfo .dt{font-size:11.5px;color:var(--muted);margin-top:3px;font-variant-numeric:tabular-nums}
+.eamt{font-family:var(--mono);font-size:16px;font-weight:800;flex-shrink:0}
+.dayhead{font-size:11px;font-weight:800;letter-spacing:1.2px;color:var(--faint);margin:16px 2px 8px;text-transform:uppercase}
+/* ---------- empty state ---------- */
+.empty{text-align:center;padding:44px 20px;color:var(--muted)}
+.empty .big{font-size:44px;margin-bottom:10px}
+.empty p{font-size:14px;line-height:1.6}
+/* ---------- bottom nav ---------- */
+nav{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-content:center;pointer-events:none;
+  padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+.navin{pointer-events:auto;display:flex;align-items:center;gap:6px;
+  background:rgba(13,18,34,.78);border:1px solid var(--stroke2);border-radius:26px;padding:8px 10px;
+  backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.navbtn{border:0;background:transparent;color:var(--muted);font-family:var(--font);font-size:12px;font-weight:700;
+  padding:10px 18px;border-radius:18px;cursor:pointer;display:flex;align-items:center;gap:7px}
+.navbtn.on{color:var(--text);background:var(--glass2)}
+.fab{width:58px;height:58px;border-radius:20px;border:0;cursor:pointer;font-size:28px;font-weight:300;color:#04120a;
+  background:linear-gradient(135deg,var(--green),#7cf7c4);box-shadow:0 8px 26px rgba(34,229,132,.4);
+  display:grid;place-items:center;margin:0 4px}
+.fab:active{transform:scale(.92)}
+/* ---------- sheets ---------- */
+.scrim{position:fixed;inset:0;background:rgba(3,5,12,.6);backdrop-filter:blur(3px);z-index:40;opacity:0;pointer-events:none;transition:opacity .25s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;max-width:480px;margin:0 auto;
+  background:rgba(16,22,40,.96);border:1px solid var(--stroke2);border-bottom:0;border-radius:26px 26px 0 0;
+  padding:10px 20px calc(24px + env(safe-area-inset-bottom));max-height:92dvh;overflow-y:auto;
+  transform:translateY(105%);transition:transform .32s cubic-bezier(.32,.9,.35,1);
+  backdrop-filter:blur(26px);-webkit-backdrop-filter:blur(26px)}
+.sheet.on{transform:none}
+.grab{width:44px;height:5px;border-radius:3px;background:rgba(255,255,255,.22);margin:6px auto 14px}
+.sheet h3{font-size:18px;font-weight:800;margin-bottom:2px}
+.sheet .hint{font-size:12.5px;color:var(--muted);margin-bottom:14px;line-height:1.5}
+.fld{margin-bottom:14px}
+.fld label{display:block;font-size:11px;font-weight:800;letter-spacing:1.1px;color:var(--muted);margin-bottom:7px}
+.fld input[type=text],.fld input[type=number],.fld input[type=datetime-local]{
+  width:100%;background:rgba(255,255,255,.06);border:1px solid var(--stroke);border-radius:15px;
+  color:var(--text);font-family:var(--font);font-size:16px;padding:14px;outline:none}
+.fld input:focus{border-color:rgba(34,229,132,.55);box-shadow:0 0 0 3px rgba(34,229,132,.14)}
+.fld textarea{
+  width:100%;background:rgba(255,255,255,.06);border:1px solid var(--stroke);border-radius:15px;
+  color:var(--text);font-family:ui-monospace,monospace;font-size:11px;padding:12px;outline:none;resize:vertical}
+.fld textarea:focus{border-color:rgba(34,229,132,.55);box-shadow:0 0 0 3px rgba(34,229,132,.14)}
+.amtwrap{position:relative}
+.amtwrap .cur{position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:26px;font-weight:800;color:var(--muted)}
+.amtwrap input{font-family:var(--mono)!important;font-size:34px!important;font-weight:800!important;
+  padding:16px 14px 16px 44px!important;letter-spacing:-1px}
+.quick{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
+.chip{border:1px solid var(--stroke);background:var(--glass);color:var(--text);border-radius:12px;
+  padding:9px 14px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:var(--mono)}
+.chip:active{background:var(--glass2)}
+.chip.person-chip{font-family:var(--font)}
+.chip.sel{border-color:var(--green);background:rgba(34,229,132,.14);color:var(--green)}
+/* big terminal buttons */
+.bigbtns{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:6px 0 4px}
+.bigbtn{border:0;border-radius:18px;padding:18px 8px;cursor:pointer;color:#fff;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  font-family:var(--font);transition:transform .1s}
+.bigbtn:active{transform:scale(.96)}
+.bigbtn .t{font-size:17px;font-weight:900;letter-spacing:1.5px}
+.bigbtn .s{font-size:11px;font-weight:600;opacity:.85}
+.bigbtn.gave{background:linear-gradient(135deg,#f2545b,#c81e3a);box-shadow:0 10px 28px rgba(242,84,91,.35)}
+.bigbtn.got{background:linear-gradient(135deg,#17b96f,#0a7d47);box-shadow:0 10px 28px rgba(34,229,132,.32)}
+.bigbtn .amt{font-family:var(--mono);font-size:13px;font-weight:700;opacity:.9}
+.rowbtns{display:flex;gap:10px;margin-top:10px}
+.btn{flex:1;border:1px solid var(--stroke);background:var(--glass);color:var(--text);border-radius:15px;
+  padding:14px;font-size:14.5px;font-weight:700;cursor:pointer;font-family:var(--font);
+  display:flex;align-items:center;justify-content:center;gap:8px}
+.btn:active{transform:scale(.98)}
+.btn.danger{color:var(--red);border-color:rgba(255,107,107,.4)}
+.btn.primary{background:linear-gradient(135deg,var(--green),#7cf7c4);color:#04120a;border:0}
+/* person detail header */
+.phead{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+.phead .avatar{width:60px;height:60px;font-size:26px;border-radius:20px}
+.phead h2{font-size:21px;font-weight:800}
+.phead .net{font-family:var(--mono);font-size:19px;font-weight:800;margin-top:2px}
+.backbtn{margin-bottom:12px}
+/* settings rows */
+.srow{display:flex;align-items:center;gap:12px;padding:15px 4px;border-bottom:1px solid rgba(255,255,255,.07);
+  cursor:pointer;font-size:15px;font-weight:600}
+.srow:last-child{border-bottom:0}
+.srow .ic{width:38px;height:38px;border-radius:12px;background:var(--glass);border:1px solid var(--stroke);
+  display:grid;place-items:center;font-size:17px;flex-shrink:0}
+.srow small{display:block;font-size:12px;color:var(--muted);font-weight:500;margin-top:2px}
+/* toast */
+.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%) translateY(20px);z-index:60;
+  background:rgba(20,28,50,.95);border:1px solid var(--stroke2);color:var(--text);
+  padding:13px 20px;border-radius:16px;font-size:14px;font-weight:700;opacity:0;pointer-events:none;
+  transition:all .3s;backdrop-filter:blur(14px);white-space:nowrap;max-width:92vw}
+.toast.on{opacity:1;transform:translateX(-50%)}
+.note{background:rgba(255,176,32,.08);border:1px solid rgba(255,176,32,.3);border-radius:14px;
+  padding:12px 14px;font-size:12.5px;color:#ffd48a;line-height:1.55;margin-bottom:14px}
+.searchbar{width:100%;background:var(--glass);border:1px solid var(--stroke);border-radius:15px;color:var(--text);
+  font-family:var(--font);font-size:15px;padding:13px 16px;outline:none;margin-bottom:6px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <div class="logo"><img src="logo.jpeg" alt="Udhar" width="42" height="42"></div>
+      <div><div class="wordmark">udhar</div><small>UDHAR KA HISAAB, SORTED.</small></div>
+    </div>
+    <button class="iconbtn" id="settingsBtn" aria-label="Settings">⚙️</button>
+  </header>
+
+  <!-- HOME -->
+  <section class="view on" id="view-home">
+    <div class="hero">
+      <div class="stat recv"><div class="lbl">TO RECEIVE</div><div class="val" id="statRecv">₹0</div><div class="sub" id="statRecvSub">0 people owe you</div></div>
+      <div class="stat pay"><div class="lbl">TO PAY</div><div class="val" id="statPay">₹0</div><div class="sub" id="statPaySub">you owe 0 people</div></div>
+    </div>
+    <div class="sec"><h2>PEOPLE</h2><span class="count" id="peopleCount"></span></div>
+    <input class="searchbar" id="searchInput" type="text" placeholder="🔍 Search people…" autocomplete="off">
+    <div id="peopleList"></div>
+  </section>
+
+  <!-- ACTIVITY -->
+  <section class="view" id="view-activity">
+    <div class="sec"><h2>ALL ACTIVITY</h2><span class="count" id="actCount"></span></div>
+    <div id="activityList"></div>
+  </section>
+
+  <!-- PERSON DETAIL -->
+  <section class="view" id="view-person">
+    <button class="btn backbtn" id="backBtn">← Back</button>
+    <div class="phead">
+      <div class="avatar" id="pdAvatar">P</div>
+      <div><h2 id="pdName">—</h2><div class="net" id="pdNet">₹0</div></div>
+    </div>
+    <div class="rowbtns" style="margin:14px 0 6px">
+      <button class="btn" id="pdGaveBtn">📤 I gave</button>
+      <button class="btn" id="pdGotBtn">📥 Got back</button>
+    </div>
+    <div class="rowbtns">
+      <button class="btn" id="pdWaBtn">💬 Nudge on WhatsApp</button>
+      <button class="btn" id="pdSettleBtn">✔ Settle up</button>
+    </div>
+    <div class="rowbtns">
+      <button class="btn" id="pdShareBtn">🔗 Share this ledger</button>
+    </div>
+    <div class="sec"><h2>LEDGER</h2><span class="count" id="pdCount"></span></div>
+    <div id="personEntries"></div>
+  </section>
+
+  <nav><div class="navin">
+    <button class="navbtn on" data-view="view-home">📒 Ledger</button>
+    <button class="fab" id="fabBtn" aria-label="Add entry">+</button>
+    <button class="navbtn" data-view="view-activity">🕘 Activity</button>
+  </div></nav>
+</div>
+
+<div class="scrim" id="scrim"></div>
+
+<!-- ENTRY SHEET -->
+<div class="sheet" id="sheet-entry">
+  <div class="grab"></div>
+  <h3 id="entryTitle">New entry</h3>
+  <p class="hint">3 taps: pick a person, type the amount, hit a big button.</p>
+  <div class="fld"><label>PERSON</label>
+    <input type="text" id="fPerson" placeholder="Name…" list="peopleData" autocomplete="off">
+    <datalist id="peopleData"></datalist>
+    <div class="quick" id="recentChips"></div>
+  </div>
+  <div class="fld"><label>AMOUNT</label>
+    <div class="amtwrap"><span class="cur" id="curSym">₹</span><input type="number" id="fAmount" inputmode="decimal" min="0" step="any" placeholder="0"></div>
+    <div class="quick" id="amtChips"></div>
+  </div>
+  <div class="fld"><label>REASON <span style="color:var(--faint);font-weight:600">(OPTIONAL)</span></label>
+    <input type="text" id="fReason" placeholder="e.g. dinner, cab, urgent…" autocomplete="off">
+  </div>
+  <div class="fld"><label>DATE &amp; TIME</label>
+    <input type="datetime-local" id="fWhen">
+  </div>
+  <div class="bigbtns">
+    <button class="bigbtn gave" id="btnGave"><span class="t">📤 GAVE</span><span class="amt" id="gaveAmt"></span><span class="s">money went out</span></button>
+    <button class="bigbtn got" id="btnGot"><span class="t">📥 GOT BACK</span><span class="amt" id="gotAmt"></span><span class="s">money came in</span></button>
+  </div>
+  <div class="rowbtns"><button class="btn danger" id="btnDelete" style="display:none">🗑 Delete entry</button></div>
+</div>
+
+<!-- SETTINGS SHEET -->
+<div class="sheet" id="sheet-settings">
+  <div class="grab"></div>
+  <h3>Settings</h3><p class="hint">Your ledger is stored on this device. Sharing is optional.</p>
+  <div class="fld"><label>CURRENCY SYMBOL</label><input type="text" id="setCur" maxlength="3"></div>
+  <div class="srow" id="rowExport"><div class="ic">💾</div><div>Backup data<small>Copy JSON in the app; download on the web</small></div></div>
+  <div class="srow" id="rowShare"><div class="ic">🔗</div><div>Share ledger link<small>Anyone with the link can view (read-only)</small></div></div>
+  <div class="srow" id="rowImport"><div class="ic">📥</div><div>Restore backup<small>Load a previously saved JSON</small></div></div>
+  <div class="srow" id="rowWipe"><div class="ic">🧨</div><div style="color:var(--red)">Erase everything<small>Delete all people and entries</small></div></div>
+  <a class="srow" href="privacy.html" style="color:inherit;text-decoration:none"><div class="ic">🔒</div><div>Privacy policy<small>Storage, sharing and deletion</small></div></a>
+  <input type="file" id="importFile" accept="application/json" style="display:none">
+</div>
+
+<!-- BACKUP SHEET (native app: copy instead of download) -->
+<div class="sheet" id="sheet-backup">
+  <div class="grab"></div>
+  <h3>💾 Your backup</h3>
+  <p class="hint">Copy this somewhere safe — Notes, Drive, email. To restore later: Settings → Restore backup → paste it back.</p>
+  <div class="fld"><label>BACKUP JSON</label><textarea id="backupText" readonly rows="7"></textarea></div>
+  <div class="rowbtns"><button class="btn primary" id="copyBackup">📋 Copy backup</button><button class="btn" id="closeBackup">Close</button></div>
+</div>
+
+<!-- RESTORE SHEET -->
+<div class="sheet" id="sheet-restore">
+  <div class="grab"></div>
+  <h3>📥 Restore backup</h3>
+  <div class="rowbtns"><button class="btn primary" id="pickFile">Choose backup file</button></div>
+  <p class="hint">…or paste a backup you copied earlier:</p>
+  <div class="fld"><label>PASTE BACKUP JSON</label><textarea id="restoreText" rows="6" placeholder='Paste the {"people":…} text here'></textarea></div>
+  <div class="rowbtns"><button class="btn primary" id="doRestorePaste">Restore from text</button><button class="btn" id="closeRestore">Cancel</button></div>
+</div>
+
+<!-- BACKUP NUDGE -->
+<div class="sheet" id="sheet-nudge">
+  <div class="grab"></div>
+  <h3>🛟 Protect your ledger</h3>
+  <p class="hint">It's been a while since your last backup. If this phone is lost — or the app is reinstalled — anything not backed up is gone for good.</p>
+  <div class="rowbtns"><button class="btn primary" id="nudgeBackup">Back up now</button><button class="btn" id="nudgeLater">Later</button></div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+"use strict";
+/* ================= utils ================= */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const AVC = ["#e5484d","#f76b15","#ffb224","#46a758","#3e9b4f","#12a594","#0090ff","#8e4ec6","#d6409f","#697177"];
+const avColor = name => { let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0; return AVC[h % AVC.length]; };
+const inr = n => "₹" + Number(n || 0).toLocaleString("en-IN", {maximumFractionDigits: 2});
+function money(n){ const sym = DB.settings.currency || "₹"; return sym + Number(n || 0).toLocaleString("en-IN", {maximumFractionDigits: 2}); }
+function fmtDT(ts){
+  const d = new Date(ts), now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  const y = new Date(now); y.setDate(y.getDate() - 1);
+  const opts = {hour: "numeric", minute: "2-digit", hour12: true};
+  if (sameDay) return "Today, " + d.toLocaleTimeString("en-IN", opts);
+  if (d.toDateString() === y.toDateString()) return "Yesterday, " + d.toLocaleTimeString("en-IN", opts);
+  return d.toLocaleDateString("en-IN", {day: "numeric", month: "short"}) + ", " + d.toLocaleTimeString("en-IN", opts);
+}
+function fmtDay(ts){ return new Date(ts).toLocaleDateString("en-IN", {weekday: "short", day: "numeric", month: "short", year: "numeric"}); }
+function toast(msg){ const t = $("toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), 2200); }
+
+/* ================= state ================= */
+const DB_KEY = "funds_v1";
+let DB = null;
+function save(){ try { localStorage.setItem(DB_KEY, JSON.stringify(DB)); return true; } catch(e){ alert("Your changes could not be saved. Storage may be full or unavailable. Back up your ledger before closing the app."); return false; } }
+function load(){
+  try { const raw = localStorage.getItem(DB_KEY); if (!raw) return null;
+    const d = JSON.parse(raw);
+    if (!d || !Array.isArray(d.people) || !Array.isArray(d.entries)) return null;
+    d.settings = Object.assign({currency: "₹"}, d.settings || {});
+    return d;
+  } catch(e){ return null; }
+}
+/* Fresh installs start with a clean, empty ledger.
+   (Your own entries live only in your device's localStorage — nothing ever leaves the phone.) */
+function seed(){
+  return {people: [], entries: [], settings: {currency: "₹"} , createdAt: Date.now()};
+}
+DB = load();
+if (!DB) { DB = seed(); localStorage.setItem("udhar_last_backup", Date.now()); /* nudge clock starts at install, not at first open */ }
+save();
+
+/* ================= derived ================= */
+const person = id => DB.people.find(p => p.id === id);
+const personEntries = pid => DB.entries.filter(e => e.personId === pid).sort((a,b) => b.ts - a.ts);
+const balance = pid => DB.entries.filter(e => e.personId === pid)
+  .reduce((s,e) => s + (e.type === "gave" ? e.amount : -e.amount), 0);
+function totals(){
+  let recv = 0, pay = 0;
+  for (const p of DB.people){ const b = balance(p.id); if (b > 0) recv += b; else pay += -b; }
+  return {recv, pay};
+}
+const lastTs = pid => { const es = personEntries(pid); return es.length ? es[0].ts : 0; };
+if (typeof module !== "undefined") module.exports = {seed, balance, totals};
+</script>
+<script>
+"use strict";
+/* ================= UI state ================= */
+let curView = "view-home", curPerson = null, editingEntry = null, searchQ = "";
+
+/* ================= sheets ================= */
+function openSheet(id){ $(id).classList.add("on"); $("scrim").classList.add("on"); }
+function closeSheets(){ document.querySelectorAll(".sheet").forEach(s => s.classList.remove("on")); $("scrim").classList.remove("on"); }
+$("scrim").addEventListener("click", closeSheets);
+
+/* ================= navigation ================= */
+function show(view){
+  curView = view;
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("on"));
+  $(view).classList.add("on");
+  document.querySelectorAll(".navbtn").forEach(b => b.classList.toggle("on", b.dataset.view === view));
+  if (view === "view-home") renderHome();
+  if (view === "view-activity") renderActivity();
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll(".navbtn").forEach(b => b.addEventListener("click", () => show(b.dataset.view)));
+$("backBtn").addEventListener("click", () => show("view-home"));
+$("fabBtn").addEventListener("click", () => openEntrySheet());
+
+/* ================= home ================= */
+function renderHome(){
+  const {recv, pay} = totals();
+  $("statRecv").textContent = money(recv);
+  $("statPay").textContent = money(pay);
+  const recvN = DB.people.filter(p => balance(p.id) > 0).length;
+  const payN = DB.people.filter(p => balance(p.id) < 0).length;
+  $("statRecvSub").textContent = recvN + (recvN === 1 ? " person owes you" : " people owe you");
+  $("statPaySub").textContent = "you owe " + payN + (payN === 1 ? " person" : " people");
+  $("curSym").textContent = DB.settings.currency || "₹";
+  const q = searchQ.trim().toLowerCase();
+  const list = DB.people
+    .filter(p => !q || p.name.toLowerCase().includes(q))
+    .sort((a,b) => Math.abs(balance(b.id)) - Math.abs(balance(a.id)));
+  $("peopleCount").textContent = DB.people.length + " total";
+  const box = $("peopleList");
+  if (!list.length){
+    box.innerHTML = `<div class="empty"><div class="big">📒</div><p>${q ? "No one matches that search." : "No people yet.<br>Tap <b>+</b> to record your first entry."}</p></div>`;
+    return;
+  }
+  box.innerHTML = list.map(p => {
+    const b = balance(p.id), n = personEntries(p.id).length;
+    const cls = b > 0 ? "pos" : b < 0 ? "neg" : "zero";
+    const tag = b > 0 ? "TO RECEIVE" : b < 0 ? "TO PAY" : "SETTLED";
+    return `<div class="person" data-pid="${p.id}">
+      <div class="avatar" style="background:${avColor(p.name)}">${esc(p.name[0].toUpperCase())}</div>
+      <div class="pinfo"><div class="nm">${esc(p.name)}</div>
+      <div class="meta">${n} ${n===1?"entry":"entries"}${n? " · " + fmtDT(lastTs(p.id)) : ""}</div></div>
+      <div class="pbal"><div class="amt ${cls}">${money(Math.abs(b))}</div><div class="tag ${cls}">${tag}</div></div>
+      <div class="chev">›</div></div>`;
+  }).join("");
+  box.querySelectorAll(".person").forEach(el => el.addEventListener("click", () => openPerson(el.dataset.pid)));
+  const dl = $("peopleData");
+  dl.innerHTML = DB.people.map(p => `<option value="${esc(p.name)}">`).join("");
+}
+$("searchInput").addEventListener("input", e => { searchQ = e.target.value; renderHome(); });
+
+/* ================= activity ================= */
+function renderActivity(){
+  const all = [...DB.entries].sort((a,b) => b.ts - a.ts);
+  $("actCount").textContent = all.length + " entries";
+  const box = $("activityList");
+  if (!all.length){ box.innerHTML = `<div class="empty"><div class="big">🕘</div><p>Nothing yet.<br>Your entries will appear here with date &amp; time.</p></div>`; return; }
+  let html = "", lastDay = "";
+  for (const e of all){
+    const day = new Date(e.ts).toDateString();
+    if (day !== lastDay){ lastDay = day; html += `<div class="dayhead">${fmtDay(e.ts)}</div>`; }
+    html += entryHtml(e, true);
+  }
+  box.innerHTML = html;
+  bindEntries(box);
+}
+function entryHtml(e, showName){
+  const p = person(e.personId);
+  const isGave = e.type === "gave";
+  return `<div class="entry" data-eid="${e.id}">
+    <div class="etype ${isGave ? "gave" : "got"}">${isGave ? "📤" : "📥"}</div>
+    <div class="einfo"><div class="rsn">${esc(e.reason || (showName && p ? p.name : (isGave ? "Gave" : "Got back")))}${showName && p && e.reason ? " · " + esc(p.name) : ""}</div>
+    <div class="dt">${fmtDT(e.ts)}</div></div>
+    <div class="eamt ${isGave ? "neg" : "pos"}">${isGave ? "−" : "+"}${money(e.amount)}</div></div>`;
+}
+function bindEntries(box){
+  box.querySelectorAll(".entry").forEach(el => el.addEventListener("click", () => {
+    const e = DB.entries.find(x => x.id === el.dataset.eid);
+    if (e) openEntrySheet(e);
+  }));
+}
+
+/* ================= person detail ================= */
+function openPerson(pid){
+  curPerson = pid;
+  const p = person(pid); if (!p) return;
+  $("pdAvatar").textContent = p.name[0].toUpperCase();
+  $("pdAvatar").style.background = avColor(p.name);
+  $("pdName").textContent = p.name;
+  const b = balance(pid);
+  const net = $("pdNet");
+  net.textContent = (b > 0 ? "owes you " : b < 0 ? "you owe " : "") + money(Math.abs(b));
+  net.className = "net " + (b > 0 ? "pos" : b < 0 ? "neg" : "zero");
+  const es = personEntries(pid);
+  $("pdCount").textContent = es.length + " entries";
+  const box = $("personEntries");
+  box.innerHTML = es.length ? es.map(e => entryHtml(e, false)).join("")
+    : `<div class="empty"><div class="big">📝</div><p>No entries for ${esc(p.name)} yet.</p></div>`;
+  bindEntries(box);
+  show("view-person");
+}
+$("pdGaveBtn").addEventListener("click", () => openEntrySheet(null, curPerson, "gave"));
+$("pdGotBtn").addEventListener("click", () => openEntrySheet(null, curPerson, "got"));
+$("pdSettleBtn").addEventListener("click", () => {
+  const b = balance(curPerson);
+  if (b === 0){ toast("Already settled ✔"); return; }
+  openEntrySheet(null, curPerson, b > 0 ? "got" : "gave", Math.abs(b), "settled up");
+});
+$("pdWaBtn").addEventListener("click", () => {
+  const p = person(curPerson); if (!p) return;
+  const b = balance(curPerson);
+  const es = personEntries(curPerson).slice(0, 8);
+  let msg = `Hi ${p.name}, quick update from my Udhar ledger:\n`;
+  for (const e of es) msg += `${e.type === "gave" ? "➖ Gave" : "➕ Got back"} ${money(e.amount)} — ${fmtDT(e.ts)}${e.reason ? " (" + e.reason + ")" : ""}\n`;
+  msg += b > 0 ? `\nBalance: ${money(b)} pending 🙂` : b < 0 ? `\nBalance: I owe you ${money(-b)} 🙂` : `\nAll settled ✔`;
+  window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank");
+});
+
+/* ================= entry sheet ================= */
+function toLocalInput(ts){
+  const d = new Date(ts), p = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function openEntrySheet(entry, presetPerson, presetType, presetAmt, presetReason){
+  editingEntry = entry || null;
+  $("entryTitle").textContent = entry ? "Edit entry" : "New entry";
+  $("btnDelete").style.display = entry ? "" : "none";
+  const p = entry ? person(entry.personId) : presetPerson ? person(presetPerson) : null;
+  $("fPerson").value = p ? p.name : "";
+  $("fAmount").value = entry ? entry.amount : (presetAmt || "");
+  $("fReason").value = entry ? (entry.reason || "") : (presetReason || "");
+  $("fWhen").value = toLocalInput(entry ? entry.ts : Date.now());
+  // recent chips
+  const recent = [...DB.entries].sort((a,b) => b.ts - a.ts)
+    .map(e => e.personId).filter((v,i,a) => a.indexOf(v) === i).slice(0, 6)
+    .map(pid => person(pid)).filter(Boolean);
+  $("recentChips").innerHTML = recent.map(x =>
+    `<button class="chip person-chip" data-nm="${esc(x.name)}">${esc(x.name)}</button>`).join("");
+  $("recentChips").querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => {
+    $("fPerson").value = c.dataset.nm;
+    $("recentChips").querySelectorAll(".chip").forEach(x => x.classList.remove("sel"));
+    c.classList.add("sel");
+  }));
+  $("amtChips").innerHTML = [100,500,1000,5000].map(a => `<button class="chip" data-a="${a}">${money(a)}</button>`).join("");
+  $("amtChips").querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => { $("fAmount").value = c.dataset.a; updBtnAmts(); }));
+  $("fAmount").oninput = updBtnAmts;
+  updBtnAmts();
+  // one-tap settle: a preset amount saves immediately; otherwise open the sheet
+  // (person-view "I gave"/"Got back" pass a type but no amount — they must open the sheet)
+  if (presetType && presetAmt) setTimeout(() => saveEntry(presetType, true), 60);
+  else openSheet("sheet-entry");
+  setTimeout(() => { if (!entry && !presetPerson) $("fPerson").focus(); }, 350);
+}
+function updBtnAmts(){
+  const a = parseFloat($("fAmount").value);
+  const lbl = a > 0 ? money(a) : "";
+  $("gaveAmt").textContent = lbl; $("gotAmt").textContent = lbl;
+}
+function readSheet(){
+  const name = $("fPerson").value.trim();
+  const amount = parseFloat($("fAmount").value);
+  const reason = $("fReason").value.trim();
+  const when = $("fWhen").value ? new Date($("fWhen").value).getTime() : Date.now();
+  return {name, amount, reason, when: isNaN(when) ? Date.now() : when};
+}
+function ensurePerson(name){
+  let p = DB.people.find(x => x.name.toLowerCase() === name.toLowerCase());
+  if (!p){ p = {id: uid(), name}; DB.people.push(p); }
+  return p;
+}
+function saveEntry(forceType, skipOpen){
+  const type = forceType;
+  const {name, amount, reason, when} = readSheet();
+  if (!name){ toast("Enter a name first"); return; }
+  if (!(amount > 0)){ toast("Enter an amount"); return; }
+  if (editingEntry){
+    editingEntry.personId = ensurePerson(name).id;
+    editingEntry.type = type; editingEntry.amount = amount;
+    editingEntry.reason = reason; editingEntry.ts = when;
+    toast("Entry updated ✔");
+  } else {
+    const p = ensurePerson(name);
+    DB.entries.push({id: uid(), personId: p.id, type, amount, reason, ts: when});
+    toast(type === "gave" ? `Recorded: gave ${money(amount)} 📤` : `Recorded: got back ${money(amount)} 📥`);
+  }
+  save(); closeSheets();
+  if (curView === "view-person" && curPerson) openPerson(curPerson);
+  else show(curView);
+}
+$("btnGave").addEventListener("click", () => saveEntry("gave"));
+$("btnGot").addEventListener("click", () => saveEntry("got"));
+$("btnDelete").addEventListener("click", () => {
+  if (!editingEntry) return;
+  if (!confirm("Delete this entry?")) return;
+  DB.entries = DB.entries.filter(e => e.id !== editingEntry.id);
+  save(); closeSheets(); toast("Entry deleted");
+  if (curView === "view-person" && curPerson) openPerson(curPerson); else show(curView);
+});
+
+/* ================= settings ================= */
+$("settingsBtn").addEventListener("click", () => { $("setCur").value = DB.settings.currency || "₹"; openSheet("sheet-settings"); });
+$("setCur").addEventListener("input", e => { DB.settings.currency = e.target.value.trim() || "₹"; save(); renderHome(); });
+/* Inside the installed app the page runs on https://localhost — Android's
+   WebView silently drops blob downloads, so export via copy-to-clipboard. */
+const IN_APP = location.protocol === "capacitor:" || /localhost/i.test(location.hostname || "");
+const backupJson = () => JSON.stringify(DB, null, 2);
+const markBackedUp = () => { localStorage.setItem("udhar_last_backup", Date.now()); localStorage.removeItem("udhar_nudge_snooze"); };
+$("rowExport").addEventListener("click", () => {
+  const json = backupJson();
+  if (IN_APP){
+    $("backupText").value = json;
+    closeSheets(); openSheet("sheet-backup");
+    return;
+  }
+  const blob = new Blob([json], {type: "application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "udhar-backup-" + new Date().toISOString().slice(0,10) + ".json";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  markBackedUp();
+  toast("Backup downloaded 💾");
+});
+$("copyBackup").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText($("backupText").value); markBackedUp(); toast("Backup copied 📋 — paste it somewhere safe"); }
+  catch(_){ $("backupText").select(); toast("Copy failed — long-press the text to copy it manually"); }
+});
+$("closeBackup").addEventListener("click", closeSheets);
+function restoreJsonText(txt){
+  try {
+    const d = JSON.parse(txt);
+    if (!Array.isArray(d.people) || !Array.isArray(d.entries)) throw 0;
+    DB = d; DB.settings = Object.assign({currency: "₹"}, d.settings || {});
+    save(); closeSheets(); show("view-home"); toast("Backup restored ✔");
+  } catch(_){ toast("That doesn't look like an Udhar backup"); }
+}
+$("rowImport").addEventListener("click", () => { closeSheets(); $("restoreText").value = ""; openSheet("sheet-restore"); });
+$("pickFile").addEventListener("click", () => $("importFile").click());
+$("closeRestore").addEventListener("click", closeSheets);
+$("doRestorePaste").addEventListener("click", () => restoreJsonText($("restoreText").value));
+$("importFile").addEventListener("change", e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => restoreJsonText(r.result);
+  r.readAsText(f); e.target.value = "";
+});
+$("rowWipe").addEventListener("click", () => {
+  if (!confirm("Erase ALL people and entries? This cannot be undone.")) return;
+  DB = {people: [], entries: [], settings: DB.settings}; save();
+  closeSheets(); show("view-home"); toast("All data erased");
+});
+
+/* ================= share via link =================
+   Ledger data is compressed into the URL hash (#d=...). The hash never
+   reaches the server — share.html reads it locally and renders read-only. */
+function encShare(obj){
+  const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
+  return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+/* Always points at the live site: inside the Android app the page runs on
+   https://localhost, and a localhost link is useless to anyone receiving it. */
+// Enable after the Netlify /udhar route is live and verified.
+const CANONICAL_HOST_READY = location.hostname === "glaral.com" && location.pathname.startsWith("/udhar");
+const VERCEL_SHARE = CANONICAL_HOST_READY ? "https://glaral.com/udhar/share.html" : "https://udhar-dun.vercel.app/share.html";
+function shareBase(){
+  const o = location.origin || "", p = location.protocol || "";
+  if (!o || o === "null" || /^(file|capacitor):/i.test(p) || /localhost/i.test(o)) return VERCEL_SHARE;
+  return VERCEL_SHARE;
+}
+function payloadFor(personId){
+  const cur = DB.settings.currency || "₹";
+  const mk = p => ({name: p.name, entries: personEntries(p.id).slice().reverse()
+    .map(e => ({t: e.type === "gave" ? "g" : "r", a: e.amount, ts: e.ts, n: e.reason || e.note || ""}))});
+  const list = personId
+    ? [mk(DB.people.find(x => x.id === personId))].filter(Boolean)
+    : DB.people.map(mk);
+  return {v: 1, cur, at: Date.now(), people: list};
+}
+async function shareLedger(personId){
+  if (!DB.people.length){ toast("Nothing to share yet"); return; }
+  if (!confirm("This link contains names, amounts and notes. Anyone with it can read and forward the ledger. It cannot be revoked. Share only with permission. Continue?")) return;
+  const base = shareBase();
+  if (!base){ toast("Publish the app first (Vercel) — then links work"); return; }
+  const code = encShare(payloadFor(personId));
+  if (code.length > 8000){ toast("Ledger too large for a link — use Backup instead"); return; }
+  const url = base + "#d=" + code;
+  if (navigator.share){
+    try { await navigator.share({title: "Udhar ledger", text: "View my ledger (read-only):", url}); return; }
+    catch(_){ /* user cancelled or not allowed — fall through to copy */ }
+  }
+  try { await navigator.clipboard.writeText(url); toast("Link copied — paste it anywhere 🔗"); }
+  catch(_){ prompt("Copy your share link (anyone with it can view):", url); }
+}
+$("rowShare").addEventListener("click", () => { closeSheets(); shareLedger(null); });
+$("pdShareBtn").addEventListener("click", () => shareLedger(curPerson));
+
+/* ================= backup nudge ================= */
+$("nudgeBackup").addEventListener("click", () => { closeSheets(); $("rowExport").click(); });
+$("nudgeLater").addEventListener("click", () => {
+  localStorage.setItem("udhar_nudge_snooze", Date.now()); closeSheets();
+});
+function maybeBackupNudge(){
+  if (!DB.people.length) return;
+  const now = Date.now();
+  if (now - (+(localStorage.getItem("udhar_nudge_snooze") || 0)) < 7*864e5) return;
+  if (now - (+(localStorage.getItem("udhar_last_backup") || 0)) < 30*864e5) return;
+  setTimeout(() => openSheet("sheet-nudge"), 1200);
+}
+
+/* ================= boot ================= */
+renderHome();
+maybeBackupNudge();
+</script>
+</body>
+</html>
